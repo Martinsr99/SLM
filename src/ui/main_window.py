@@ -23,6 +23,10 @@ class VolumeApp:
         """
         self.root = root
         self.config = load_config()
+        
+        # Validate and clean configuration on startup (without UI variables)
+        self._validate_config_data()
+        
         self.lang = get_language(self.config["language"])
         
         # Configure appearance
@@ -31,7 +35,7 @@ class VolumeApp:
         self.root.title(self.lang["title"])
         self.root.geometry("900x700")
         
-        # Initialize variables
+        # Initialize variables with validated values
         self.volume_normal = ctk.DoubleVar(value=self.config["volume_normal"])
         self.volume_ducked = ctk.DoubleVar(value=self.config["volume_ducked"])
         self.peak_threshold = ctk.DoubleVar(value=self.config["peak_threshold"])
@@ -49,6 +53,7 @@ class VolumeApp:
         # Initialize UI and start volume manager
         self.setup_ui()
         self.start_volume_manager()
+        self.start_ui_refresh_timer()
 
     def setup_ui(self) -> None:
         """Setup the main UI components"""
@@ -94,6 +99,12 @@ class VolumeApp:
 
         ctk.CTkLabel(left, text=self.lang["priority"], font=ctk.CTkFont(size=16, weight="bold")).pack(pady=6)
         ctk.CTkLabel(right, text=self.lang["music"], font=ctk.CTkFont(size=16, weight="bold")).pack(pady=6)
+        
+        # Add validation info
+        info_label = ctk.CTkLabel(top, text=self.lang["validation_info"], 
+                                 font=ctk.CTkFont(size=11), 
+                                 text_color=("gray60", "gray40"))
+        info_label.grid(row=1, column=0, columnspan=2, pady=(0, 5))
 
         self.app_vars = {}
         for app in visible:
@@ -111,8 +122,14 @@ class VolumeApp:
         row_l.pack(fill="x", padx=6, pady=2)
         row_r.pack(fill="x", padx=6, pady=2)
 
-        ctk.CTkCheckBox(row_l, text=app, variable=var_p, command=self.update_config).pack(side="left")
-        ctk.CTkCheckBox(row_r, text=app, variable=var_m, command=self.update_config).pack(side="left")
+        # Create checkboxes with mutual exclusion validation
+        checkbox_p = ctk.CTkCheckBox(row_l, text=app, variable=var_p, 
+                                   command=lambda: self._handle_checkbox_change(app, 'priority'))
+        checkbox_m = ctk.CTkCheckBox(row_r, text=app, variable=var_m, 
+                                   command=lambda: self._handle_checkbox_change(app, 'music'))
+        
+        checkbox_p.pack(side="left")
+        checkbox_m.pack(side="left")
 
         if self.show_all.get() and app in self.config["ignored_apps"]:
             btn = ctk.CTkButton(row_l, text="➕", width=32, command=lambda a=app: self.restore_app(a))
@@ -214,6 +231,88 @@ class VolumeApp:
         lang_menu.set(current_lang)
         lang_menu.pack(pady=(0, 5))
 
+    def _handle_checkbox_change(self, app: str, checkbox_type: str) -> None:
+        """
+        Handle checkbox changes with mutual exclusion validation
+        
+        Args:
+            app: Application name
+            checkbox_type: Either 'priority' or 'music'
+        """
+        if app not in self.app_vars:
+            return
+            
+        var_p, var_m = self.app_vars[app]
+        
+        if checkbox_type == 'priority' and var_p.get():
+            # If priority is being checked, uncheck music
+            if var_m.get():
+                var_m.set(False)
+                print(f"[INFO] Removed {app} from music apps (moved to priority)")
+        elif checkbox_type == 'music' and var_m.get():
+            # If music is being checked, uncheck priority
+            if var_p.get():
+                var_p.set(False)
+                print(f"[INFO] Removed {app} from priority apps (moved to music)")
+        
+        # Update configuration
+        self.update_config()
+
+    def _validate_config_data(self) -> None:
+        """
+        Validate and clean configuration data (without UI variables)
+        """
+        # Get current audio apps
+        current_apps = set(list_audio_apps())
+        
+        # Clean up apps that no longer exist
+        self.config["priority_apps"] = [app for app in self.config.get("priority_apps", []) 
+                                       if app in current_apps]
+        self.config["music_apps"] = [app for app in self.config.get("music_apps", []) 
+                                    if app in current_apps]
+        self.config["ignored_apps"] = [app for app in self.config.get("ignored_apps", []) 
+                                      if app in current_apps]
+        
+        # Remove duplicates between priority and music apps
+        priority_set = set(self.config.get("priority_apps", []))
+        music_set = set(self.config.get("music_apps", []))
+        
+        # If an app is in both lists, keep it in priority (priority wins)
+        duplicates = priority_set & music_set
+        if duplicates:
+            print(f"[WARNING] Found apps in both lists, keeping in priority: {duplicates}")
+            self.config["music_apps"] = [app for app in self.config["music_apps"] 
+                                        if app not in duplicates]
+        
+        # Validate slider values (config only)
+        self._validate_config_values()
+
+    def _validate_config_values(self) -> None:
+        """Validate and correct configuration values to be within acceptable ranges"""
+        # Volume values should be between 0.0 and 1.0
+        self.config["volume_normal"] = max(0.0, min(1.0, self.config.get("volume_normal", 1.0)))
+        self.config["volume_ducked"] = max(0.0, min(1.0, self.config.get("volume_ducked", 0.2)))
+        
+        # Peak threshold should be between 0.0 and 1.0
+        self.config["peak_threshold"] = max(0.0, min(1.0, self.config.get("peak_threshold", 0.01)))
+        
+        # Restore delay should be between 0.1 and 60 seconds
+        self.config["restore_delay"] = max(0.1, min(60.0, self.config.get("restore_delay", 3.0)))
+
+    def _validate_and_clean_config(self) -> None:
+        """
+        Validate and clean configuration for corner cases (with UI variables)
+        """
+        # Validate config data first
+        self._validate_config_data()
+        
+        # Update UI variables with validated values if they exist
+        if hasattr(self, 'volume_normal'):
+            self.volume_normal.set(self.config["volume_normal"])
+            self.volume_ducked.set(self.config["volume_ducked"])
+            self.peak_threshold.set(self.config["peak_threshold"])
+            self.restore_delay.set(self.config["restore_delay"])
+
     def _format_value(self, value: float, unit: str) -> str:
         """Format a value with its unit for display"""
         if unit == "%":
@@ -295,6 +394,38 @@ class VolumeApp:
         """Start the volume manager in a separate thread"""
         self.volume_manager = VolumeManager(self.get_config)
         threading.Thread(target=self.volume_manager.monitor_loop, daemon=True).start()
+
+    def start_ui_refresh_timer(self) -> None:
+        """Start a timer to periodically refresh the UI for new audio applications"""
+        self._last_known_apps = set(list_audio_apps())
+        self._check_for_new_apps()
+
+    def _check_for_new_apps(self) -> None:
+        """Check for new audio applications and refresh UI if needed"""
+        try:
+            current_apps = set(list_audio_apps())
+            
+            # Check if there are new apps or apps have disappeared
+            if current_apps != self._last_known_apps:
+                new_apps = current_apps - self._last_known_apps
+                removed_apps = self._last_known_apps - current_apps
+                
+                if new_apps:
+                    print(f"[INFO] New audio applications detected: {new_apps}")
+                if removed_apps:
+                    print(f"[INFO] Audio applications removed: {removed_apps}")
+                
+                # Update the known apps list
+                self._last_known_apps = current_apps
+                
+                # Refresh the UI to show new applications
+                self.draw_ui()
+                
+        except Exception as e:
+            print(f"[WARNING] Error checking for new apps: {e}")
+        
+        # Schedule the next check (every 5 seconds)
+        self.root.after(5000, self._check_for_new_apps)
 
     def on_closing(self) -> None:
         """Handle application closing"""

@@ -160,16 +160,16 @@ This project is open source. See the license file for details.
 
 ## Changelog
 
-### Version 2.0.0
-- Complete code restructure with modular design
-- Improved error handling and logging
-- Better type annotations
-- Configuration template system
-- Enhanced UI with real-time value display
-- Thread-safe operations
-- Immediate configuration updates
+For detailed version history and changes, see [CHANGELOG.md](CHANGELOG.md).
 
-### Version 1.x
-- Initial release
-- Basic volume ducking functionality
-- Simple UI interface
+### Latest Version (1.1)
+- **Auto-detection of new audio applications**: UI refreshes automatically every 5 seconds
+- **Mutual exclusion validation**: Apps can only be in Priority OR Music lists
+- **Enhanced input validation**: All configuration values validated and corrected automatically
+- **Real-time feedback**: Immediate application of volume changes
+- **Complete project restructure**: Organized code into modular packages
+- **Enhanced UI**: Real-time value display on sliders with percentage indicators
+- **Improved stability**: Fixed thread safety issues and initialization errors
+
+### Previous Versions
+- **Version 1.0**: Initial release with basic volume ducking functionality, multi-language support

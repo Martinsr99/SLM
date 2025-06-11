@@ -14,7 +14,10 @@ LANG = {
         "show_hidden": "Show hidden apps",
         "hide": "Hide",
         "mode": "Appearance",
-        "lang": "Language"
+        "lang": "Language",
+        "validation_info": "Note: Apps can only be in one list (Priority OR Music, not both)",
+        "moved_to_priority": "moved to Priority Apps",
+        "moved_to_music": "moved to Music Apps"
     },
     "es": {
         "title": "Gestor de Volumen Automático",
@@ -27,7 +30,10 @@ LANG = {
         "show_hidden": "Mostrar apps ocultas",
         "hide": "Ocultar",
         "mode": "Apariencia",
-        "lang": "Idioma"
+        "lang": "Idioma",
+        "validation_info": "Nota: Las apps solo pueden estar en una lista (Prioritarias O Música, no ambas)",
+        "moved_to_priority": "movida a Apps Prioritarias",
+        "moved_to_music": "movida a Apps de Música"
     }
 }
 

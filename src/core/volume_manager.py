@@ -34,10 +34,23 @@ class VolumeManager:
         music_apps = config.get("music_apps", [])
         volume_ducked = config.get("volume_ducked", 0.2)
         
-        if music_apps:
-            success_count = set_multiple_apps_volume(music_apps, volume_ducked)
+        # Validate inputs
+        if not music_apps or not isinstance(music_apps, list):
+            return
+            
+        if not isinstance(volume_ducked, (int, float)) or volume_ducked < 0 or volume_ducked > 1:
+            print(f"[WARNING] Invalid ducked volume: {volume_ducked}, using default")
+            volume_ducked = 0.2
+            
+        # Filter out invalid app names
+        valid_apps = [app for app in music_apps if app and isinstance(app, str)]
+        
+        if valid_apps:
+            success_count = set_multiple_apps_volume(valid_apps, volume_ducked)
             if success_count > 0:
                 print(f"[INFO] Ducked {success_count} music app(s)")
+            elif len(valid_apps) > 0:
+                print(f"[WARNING] Failed to duck any of {len(valid_apps)} music apps")
 
     def restore_music(self) -> None:
         """Restore normal volume of music applications"""
@@ -45,10 +58,23 @@ class VolumeManager:
         music_apps = config.get("music_apps", [])
         volume_normal = config.get("volume_normal", 1.0)
         
-        if music_apps:
-            success_count = set_multiple_apps_volume(music_apps, volume_normal)
+        # Validate inputs
+        if not music_apps or not isinstance(music_apps, list):
+            return
+            
+        if not isinstance(volume_normal, (int, float)) or volume_normal < 0 or volume_normal > 1:
+            print(f"[WARNING] Invalid normal volume: {volume_normal}, using default")
+            volume_normal = 1.0
+            
+        # Filter out invalid app names
+        valid_apps = [app for app in music_apps if app and isinstance(app, str)]
+        
+        if valid_apps:
+            success_count = set_multiple_apps_volume(valid_apps, volume_normal)
             if success_count > 0:
                 print(f"[INFO] Restored {success_count} music app(s)")
+            elif len(valid_apps) > 0:
+                print(f"[WARNING] Failed to restore any of {len(valid_apps)} music apps")
 
     def check_priority_audio(self) -> bool:
         """
@@ -61,10 +87,18 @@ class VolumeManager:
         priority_apps = config.get("priority_apps", [])
         peak_threshold = config.get("peak_threshold", 0.01)
         
-        if not priority_apps:
+        # Validate inputs
+        if not priority_apps or not isinstance(priority_apps, list):
             return False
             
+        if not isinstance(peak_threshold, (int, float)) or peak_threshold <= 0:
+            print(f"[WARNING] Invalid peak threshold: {peak_threshold}, using default")
+            peak_threshold = 0.01
+            
         for app_name in priority_apps:
+            if not app_name or not isinstance(app_name, str):
+                continue
+                
             peak = get_app_peak_volume(app_name)
             if peak > peak_threshold:
                 print(f"[INFO] Audio detected in {app_name} (peak={peak:.2f})")
