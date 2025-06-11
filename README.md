@@ -53,6 +53,32 @@ AutoVolumeManager_v1/
    python main.py
    ```
 
+## Building Executable
+
+To create a standalone .exe file:
+
+1. **Install PyInstaller**:
+   ```bash
+   python -m pip install --user pyinstaller
+   ```
+
+2. **Build the executable**:
+   ```bash
+   python -m PyInstaller --onefile --windowed --name AutoVolumeManager --add-data "config.template.json;." --hidden-import customtkinter --hidden-import pycaw --hidden-import comtypes main.py
+   ```
+
+3. **Find your executable**:
+   - The .exe file will be created in the `dist/` folder
+   - Copy `AutoVolumeManager.exe` from `dist/` folder to distribute
+   - The executable includes all dependencies and can run on any Windows system
+
+**Build Parameters Explained**:
+- `--onefile`: Creates a single executable file
+- `--windowed`: Hides the console window (GUI only)
+- `--name`: Sets the executable name
+- `--add-data`: Includes the config template file
+- `--hidden-import`: Ensures required modules are included
+
 ## Configuration
 
 The application creates a `config.template.json` file on first run that shows all available configuration options. Your personal settings are saved in `config.json` (which is ignored by git).
