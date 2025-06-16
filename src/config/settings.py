@@ -13,6 +13,8 @@ DEFAULT_CONFIG = {
     "volume_ducked": 0.15,
     "peak_threshold": 0.01,
     "restore_delay": 1.0,
+    "fade_out_duration": 0.2,  # Fade out más rápido
+    "fade_in_duration": 0.4,   # Fade in más lento
     "priority_apps": [],
     "music_apps": [],
     "ignored_apps": [],
@@ -65,6 +67,26 @@ def _validate_config(config: Dict[str, Any]) -> Dict[str, Any]:
     else:
         print(f"[WARNING] Invalid restore_delay value: {restore_delay}. Using default.")
         validated_config["restore_delay"] = DEFAULT_CONFIG["restore_delay"]
+    
+    # Validate fade durations
+    fade_out_duration = config.get("fade_out_duration", DEFAULT_CONFIG.get("fade_out_duration", 0.2))
+    if isinstance(fade_out_duration, (int, float)):
+        validated_config["fade_out_duration"] = max(0.1, min(2.0, float(fade_out_duration)))
+    else:
+        print(f"[WARNING] Invalid fade_out_duration value: {fade_out_duration}. Using default.")
+        validated_config["fade_out_duration"] = DEFAULT_CONFIG.get("fade_out_duration", 0.2)
+    
+    fade_in_duration = config.get("fade_in_duration", DEFAULT_CONFIG.get("fade_in_duration", 0.4))
+    if isinstance(fade_in_duration, (int, float)):
+        validated_config["fade_in_duration"] = max(0.1, min(2.0, float(fade_in_duration)))
+    else:
+        print(f"[WARNING] Invalid fade_in_duration value: {fade_in_duration}. Using default.")
+        validated_config["fade_in_duration"] = DEFAULT_CONFIG.get("fade_in_duration", 0.4)
+    
+    # Mantener compatibilidad con fade_duration antiguo
+    fade_duration = config.get("fade_duration")
+    if fade_duration is not None and isinstance(fade_duration, (int, float)):
+        validated_config["fade_duration"] = max(0.1, min(2.0, float(fade_duration)))
     
     # Validate list fields
     for key in ["priority_apps", "music_apps", "ignored_apps"]:
@@ -122,6 +144,7 @@ def create_config_template() -> None:
             "volume_ducked": "Reduced volume level when priority audio is detected (0.0 to 1.0)",
             "peak_threshold": "Audio peak threshold to trigger ducking (0.0 to 1.0)",
             "restore_delay": "Delay in seconds before restoring normal volume",
+            "fade_duration": "Duration in seconds for volume fade in/out effect (0.1 to 2.0)",
             "priority_apps": "List of applications that trigger volume ducking",
             "music_apps": "List of music applications to be ducked",
             "ignored_apps": "List of applications to hide from the interface",

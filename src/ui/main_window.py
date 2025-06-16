@@ -40,7 +40,10 @@ class VolumeApp:
         self.volume_ducked = ctk.DoubleVar(value=self.config["volume_ducked"])
         self.peak_threshold = ctk.DoubleVar(value=self.config["peak_threshold"])
         self.restore_delay = ctk.DoubleVar(value=self.config.get("restore_delay", 3.0))
+        self.fade_out_duration = ctk.DoubleVar(value=self.config.get("fade_out_duration", 0.2))
+        self.fade_in_duration = ctk.DoubleVar(value=self.config.get("fade_in_duration", 0.4))
         self.show_all = ctk.BooleanVar(value=False)
+        self.show_advanced = ctk.BooleanVar(value=False)
         
         # UI components
         self.frame: Optional[ctk.CTkFrame] = None
@@ -153,7 +156,7 @@ class VolumeApp:
         ).grid(row=1, column=0, pady=5)
 
     def _create_sliders_area(self) -> None:
-        """Create the sliders configuration area"""
+        """Create the sliders configuration area with basic and advanced sections"""
         sliders = ctk.CTkFrame(self.frame)
         sliders.grid(row=2, column=0, sticky="nsew", pady=10)
         sliders.grid_columnconfigure(0, weight=1)
@@ -161,15 +164,58 @@ class VolumeApp:
         # Create labels to show current values
         self.value_labels = {}
         
-        slider_configs = [
+        # Basic settings section
+        basic_frame = ctk.CTkFrame(sliders)
+        basic_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 5))
+        basic_frame.grid_columnconfigure(0, weight=1)
+        
+        ctk.CTkLabel(basic_frame, text=self.lang["basic_settings"], 
+                    font=ctk.CTkFont(size=14, weight="bold")).grid(row=0, column=0, pady=(10, 5))
+        
+        # Basic slider configurations
+        basic_configs = [
             ("vol_normal", self.lang["vol_normal"], self.volume_normal, 1, "%"),
             ("vol_ducked", self.lang["vol_ducked"], self.volume_ducked, 1, "%"),
-            ("peak", self.lang["peak"], self.peak_threshold, 0.1, ""),
             ("delay", self.lang["delay"], self.restore_delay, 10, "s")
         ]
 
-        for i, (key, label, var, maxv, unit) in enumerate(slider_configs):
-            self._create_slider_row(sliders, i, key, label, var, maxv, unit)
+        for i, (key, label, var, maxv, unit) in enumerate(basic_configs):
+            self._create_slider_row(basic_frame, i + 1, key, label, var, maxv, unit)
+        
+        # Advanced options toggle
+        advanced_toggle = ctk.CTkCheckBox(
+            sliders, 
+            text=self.lang["advanced_options"], 
+            variable=self.show_advanced, 
+            command=self._toggle_advanced_options,
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        advanced_toggle.grid(row=1, column=0, pady=10)
+        
+        # Advanced settings section (initially hidden)
+        if self.show_advanced.get():
+            self._create_advanced_section(sliders)
+    
+    def _create_advanced_section(self, parent: ctk.CTkFrame) -> None:
+        """Create the advanced settings section"""
+        advanced_frame = ctk.CTkFrame(parent)
+        advanced_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=(5, 10))
+        advanced_frame.grid_columnconfigure(0, weight=1)
+        
+        ctk.CTkLabel(advanced_frame, text=self.lang["advanced_options"], 
+                    font=ctk.CTkFont(size=14, weight="bold")).grid(row=0, column=0, pady=(10, 5))
+        
+        # Advanced slider configurations
+        advanced_configs = [
+            ("peak", self.lang["peak"], self.peak_threshold, 0.1, "")
+        ]
+
+        for i, (key, label, var, maxv, unit) in enumerate(advanced_configs):
+            self._create_slider_row(advanced_frame, i + 1, key, label, var, maxv, unit)
+    
+    def _toggle_advanced_options(self) -> None:
+        """Toggle the visibility of advanced options"""
+        self.draw_ui()  # Redraw UI to show/hide advanced section
 
     def _create_slider_row(self, parent: ctk.CTkFrame, row: int, key: str, label: str, 
                           var: ctk.DoubleVar, max_val: float, unit: str) -> None:
@@ -312,6 +358,7 @@ class VolumeApp:
             self.volume_ducked.set(self.config["volume_ducked"])
             self.peak_threshold.set(self.config["peak_threshold"])
             self.restore_delay.set(self.config["restore_delay"])
+            self.fade_duration.set(self.config.get("fade_duration", 0.4))
 
     def _format_value(self, value: float, unit: str) -> str:
         """Format a value with its unit for display"""
@@ -385,6 +432,8 @@ class VolumeApp:
             "volume_ducked": self.volume_ducked.get(),
             "peak_threshold": self.peak_threshold.get(),
             "restore_delay": self.restore_delay.get(),
+            "fade_out_duration": self.fade_out_duration.get(),
+            "fade_in_duration": self.fade_in_duration.get(),
             "ignored_apps": self.config.get("ignored_apps", []),
             "appearance_mode": self.config["appearance_mode"],
             "language": self.config["language"]

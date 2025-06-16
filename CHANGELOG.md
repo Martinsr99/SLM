@@ -5,6 +5,29 @@ All notable changes to AutoVolumeManager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2] - 2025-06-16
+
+### Added
+- **Smooth volume transitions**: Implemented fade in/out effects for volume changes instead of instant transitions
+- **Differentiated fade speeds**: 
+  - Fast fade out (0.2s) when priority audio is detected for immediate response
+  - Slower fade in (0.4s) when restoring volume for smoother experience
+- **Advanced options section**: Collapsible advanced settings panel for technical parameters
+- **Enhanced audio utilities**: New functions for smooth volume transitions and current volume detection
+- **Threaded fade operations**: Non-blocking volume transitions that don't interfere with audio monitoring
+
+### Changed
+- **Volume transition behavior**: Replaced instant volume changes with smooth fade effects
+- **UI organization**: Reorganized settings into "Basic Settings" and "Advanced Options" sections
+- **Configuration structure**: Added `fade_out_duration` and `fade_in_duration` parameters
+- **User experience**: More professional audio transitions with noticeable but quick fades
+
+### Technical Improvements
+- **Multi-threaded fade system**: Volume fades run in separate threads for smooth operation
+- **Backward compatibility**: Maintains compatibility with existing configuration files
+- **Enhanced validation**: Added validation for new fade duration parameters
+- **Optimized fade algorithm**: 20-step fade process for smooth volume transitions
+
 ## [1.1] - 2025-06-11
 
 ### Added

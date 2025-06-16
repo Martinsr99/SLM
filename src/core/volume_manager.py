@@ -7,7 +7,9 @@ from .audio_utils import (
     initialize_com, 
     set_multiple_apps_volume, 
     check_apps_audio_activity,
-    get_app_peak_volume
+    get_app_peak_volume,
+    get_app_current_volume,
+    fade_multiple_apps_volume
 )
 
 
@@ -29,10 +31,11 @@ class VolumeManager:
         self._running = False
 
     def duck_music(self) -> None:
-        """Lower volume of music applications"""
+        """Lower volume of music applications with fade out"""
         config = self.get_config()
         music_apps = config.get("music_apps", [])
         volume_ducked = config.get("volume_ducked", 0.2)
+        fade_out_duration = config.get("fade_out_duration", 0.2)  # Fade out más rápido
         
         # Validate inputs
         if not music_apps or not isinstance(music_apps, list):
@@ -42,21 +45,33 @@ class VolumeManager:
             print(f"[WARNING] Invalid ducked volume: {volume_ducked}, using default")
             volume_ducked = 0.2
             
+        if not isinstance(fade_out_duration, (int, float)) or fade_out_duration < 0.1 or fade_out_duration > 2.0:
+            print(f"[WARNING] Invalid fade out duration: {fade_out_duration}, using default")
+            fade_out_duration = 0.2
+            
         # Filter out invalid app names
         valid_apps = [app for app in music_apps if app and isinstance(app, str)]
         
         if valid_apps:
-            success_count = set_multiple_apps_volume(valid_apps, volume_ducked)
+            # Get current volume of first app to use as starting point
+            start_volume = 1.0  # Default assumption
+            if valid_apps:
+                current_vol = get_app_current_volume(valid_apps[0])
+                if current_vol > 0:
+                    start_volume = current_vol
+            
+            success_count = fade_multiple_apps_volume(valid_apps, start_volume, volume_ducked, fade_out_duration)
             if success_count > 0:
-                print(f"[INFO] Ducked {success_count} music app(s)")
+                print(f"[INFO] Fading down {success_count} music app(s) to {volume_ducked:.1f}")
             elif len(valid_apps) > 0:
-                print(f"[WARNING] Failed to duck any of {len(valid_apps)} music apps")
+                print(f"[WARNING] Failed to fade any of {len(valid_apps)} music apps")
 
     def restore_music(self) -> None:
-        """Restore normal volume of music applications"""
+        """Restore normal volume of music applications with fade in"""
         config = self.get_config()
         music_apps = config.get("music_apps", [])
         volume_normal = config.get("volume_normal", 1.0)
+        fade_in_duration = config.get("fade_in_duration", 0.4)  # Fade in más lento
         
         # Validate inputs
         if not music_apps or not isinstance(music_apps, list):
@@ -66,15 +81,26 @@ class VolumeManager:
             print(f"[WARNING] Invalid normal volume: {volume_normal}, using default")
             volume_normal = 1.0
             
+        if not isinstance(fade_in_duration, (int, float)) or fade_in_duration < 0.1 or fade_in_duration > 2.0:
+            print(f"[WARNING] Invalid fade in duration: {fade_in_duration}, using default")
+            fade_in_duration = 0.4
+            
         # Filter out invalid app names
         valid_apps = [app for app in music_apps if app and isinstance(app, str)]
         
         if valid_apps:
-            success_count = set_multiple_apps_volume(valid_apps, volume_normal)
+            # Get current volume of first app to use as starting point
+            start_volume = 0.2  # Default assumption (ducked volume)
+            if valid_apps:
+                current_vol = get_app_current_volume(valid_apps[0])
+                if current_vol >= 0:
+                    start_volume = current_vol
+            
+            success_count = fade_multiple_apps_volume(valid_apps, start_volume, volume_normal, fade_in_duration)
             if success_count > 0:
-                print(f"[INFO] Restored {success_count} music app(s)")
+                print(f"[INFO] Fading up {success_count} music app(s) to {volume_normal:.1f}")
             elif len(valid_apps) > 0:
-                print(f"[WARNING] Failed to restore any of {len(valid_apps)} music apps")
+                print(f"[WARNING] Failed to fade any of {len(valid_apps)} music apps")
 
     def check_priority_audio(self) -> bool:
         """
